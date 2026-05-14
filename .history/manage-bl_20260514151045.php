@@ -9,24 +9,17 @@ $page_title = 'Manage B/L';
 
 /*
 |--------------------------------------------------------------------------
-| AUTO DATABASE MIGRATION
+| AUTO DATABASE MIGRATION (PERMANENT FIX)
+|--------------------------------------------------------------------------
+| This ensures the database always has the required columns
+| for the advanced B/L management system.
 |--------------------------------------------------------------------------
 */
 
 try {
 
-    /*
-    |--------------------------------------------------------------------------
-    | bills_of_lading.bl_type
-    |--------------------------------------------------------------------------
-    */
-
-    $check = $pdo->query("
-        SHOW COLUMNS
-        FROM bills_of_lading
-        LIKE 'bl_type'
-    ");
-
+    // bills_of_lading.bl_type
+    $check = $pdo->query("SHOW COLUMNS FROM bills_of_lading LIKE 'bl_type'");
     if ($check->rowCount() == 0) {
 
         $pdo->exec("
@@ -37,18 +30,8 @@ try {
         ");
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | bills_of_lading.last_return_date
-    |--------------------------------------------------------------------------
-    */
-
-    $check = $pdo->query("
-        SHOW COLUMNS
-        FROM bills_of_lading
-        LIKE 'last_return_date'
-    ");
-
+    // bills_of_lading.last_return_date
+    $check = $pdo->query("SHOW COLUMNS FROM bills_of_lading LIKE 'last_return_date'");
     if ($check->rowCount() == 0) {
 
         $pdo->exec("
@@ -58,18 +41,8 @@ try {
         ");
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | bl_items.dispatch_status
-    |--------------------------------------------------------------------------
-    */
-
-    $check = $pdo->query("
-        SHOW COLUMNS
-        FROM bl_items
-        LIKE 'dispatch_status'
-    ");
-
+    // bl_items.dispatch_status
+    $check = $pdo->query("SHOW COLUMNS FROM bl_items LIKE 'dispatch_status'");
     if ($check->rowCount() == 0) {
 
         $pdo->exec("
@@ -84,95 +57,24 @@ try {
             AFTER net_weight
         ");
 
-        /*
-        |--------------------------------------------------------------------------
-        | MIGRATE OLD STATUS VALUES
-        |--------------------------------------------------------------------------
-        */
-
+        // migrate old statuses
         $pdo->exec("
             UPDATE bl_items
             SET dispatch_status =
             CASE
-                WHEN empty_return_status = 'pending'
-                    THEN 'pending'
-
-                WHEN empty_return_status = 'in_transit'
-                    THEN 'transit'
-
-                WHEN empty_return_status = 'completed'
-                    THEN 'received'
-
+                WHEN empty_return_status = 'pending' THEN 'pending'
+                WHEN empty_return_status = 'in_transit' THEN 'transit'
+                WHEN empty_return_status = 'completed' THEN 'received'
                 ELSE 'pending'
             END
         ");
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE INDEXES SAFELY
-    |--------------------------------------------------------------------------
-    */
-
-    // idx_bl_number
-    $check = $pdo->query("
-        SHOW INDEX
-        FROM bills_of_lading
-        WHERE Key_name = 'idx_bl_number'
-    ");
-
-    if ($check->rowCount() == 0) {
-
-        $pdo->exec("
-            CREATE INDEX idx_bl_number
-            ON bills_of_lading(bl_number)
-        ");
-    }
-
-    // idx_bl_status
-    $check = $pdo->query("
-        SHOW INDEX
-        FROM bills_of_lading
-        WHERE Key_name = 'idx_bl_status'
-    ");
-
-    if ($check->rowCount() == 0) {
-
-        $pdo->exec("
-            CREATE INDEX idx_bl_status
-            ON bills_of_lading(status)
-        ");
-    }
-
-    // idx_bl_type
-    $check = $pdo->query("
-        SHOW INDEX
-        FROM bills_of_lading
-        WHERE Key_name = 'idx_bl_type'
-    ");
-
-    if ($check->rowCount() == 0) {
-
-        $pdo->exec("
-            CREATE INDEX idx_bl_type
-            ON bills_of_lading(bl_type)
-        ");
-    }
-
-    // idx_bl_items_blid
-    $check = $pdo->query("
-        SHOW INDEX
-        FROM bl_items
-        WHERE Key_name = 'idx_bl_items_blid'
-    ");
-
-    if ($check->rowCount() == 0) {
-
-        $pdo->exec("
-            CREATE INDEX idx_bl_items_blid
-            ON bl_items(bl_id)
-        ");
-    }
+    // indexes
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_bl_number ON bills_of_lading(bl_number)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_bl_status ON bills_of_lading(status)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_bl_type ON bills_of_lading(bl_type)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_bl_items_blid ON bl_items(bl_id)");
 
 } catch (Exception $e) {
 
@@ -181,7 +83,7 @@ try {
 
 /*
 |--------------------------------------------------------------------------
-| DELETE RECORD
+| DELETE
 |--------------------------------------------------------------------------
 */
 
@@ -202,22 +104,15 @@ if (isset($_POST['delete_id'])) {
 
 /*
 |--------------------------------------------------------------------------
-| UPDATE STATUS
+| STATUS UPDATE
 |--------------------------------------------------------------------------
 */
 
-if (
-    isset($_POST['status_id']) &&
-    isset($_POST['new_status'])
-) {
+if (isset($_POST['status_id']) && isset($_POST['new_status'])) {
 
-    $allowedStatuses = [
-        'active',
-        'draft',
-        'completed'
-    ];
+    $allowed = ['active', 'draft', 'completed'];
 
-    if (in_array($_POST['new_status'], $allowedStatuses)) {
+    if (in_array($_POST['new_status'], $allowed)) {
 
         $stmt = $pdo->prepare("
             UPDATE bills_of_lading
@@ -241,13 +136,13 @@ if (
 |--------------------------------------------------------------------------
 */
 
-$search   = trim($_GET['search'] ?? '');
-$status_f = trim($_GET['status'] ?? '');
-$type_f   = trim($_GET['bl_type'] ?? '');
+$search     = trim($_GET['search'] ?? '');
+$status_f   = trim($_GET['status'] ?? '');
+$type_f     = trim($_GET['bl_type'] ?? '');
 
-$perPage = 10;
-$page    = max(1, (int)($_GET['page'] ?? 1));
-$offset  = ($page - 1) * $perPage;
+$perPage    = 10;
+$page       = max(1, (int)($_GET['page'] ?? 1));
+$offset     = ($page - 1) * $perPage;
 
 $where  = ['1=1'];
 $params = [];
@@ -281,7 +176,7 @@ $whereSQL = implode(' AND ', $where);
 
 /*
 |--------------------------------------------------------------------------
-| COUNT RECORDS
+| COUNT
 |--------------------------------------------------------------------------
 */
 
@@ -377,6 +272,12 @@ $dataStmt->execute($params);
 
 $bills = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
 
+/*
+|--------------------------------------------------------------------------
+| HEADER
+|--------------------------------------------------------------------------
+*/
+
 require_once 'includes/header.php';
 
 ?>
@@ -388,7 +289,7 @@ require_once 'includes/header.php';
         <div>
             <h2 class="fw-bold mb-1">Manage Bills of Lading</h2>
             <p class="text-muted mb-0">
-                View and manage shipment records
+                View and manage all shipment records
             </p>
         </div>
 
@@ -431,7 +332,7 @@ require_once 'includes/header.php';
                             type="text"
                             name="search"
                             class="form-control"
-                            placeholder="Search B/L Number..."
+                            placeholder="Search B/L..."
                             value="<?php echo htmlspecialchars($search); ?>"
                         >
 
@@ -443,29 +344,20 @@ require_once 'includes/header.php';
                             name="status"
                             class="form-select"
                         >
+                            <option value="">All Statuses</option>
 
-                            <option value="">
-                                All Statuses
-                            </option>
-
-                            <option
-                                value="active"
-                                <?php echo $status_f === 'active' ? 'selected' : ''; ?>
-                            >
+                            <option value="active"
+                                <?php echo $status_f === 'active' ? 'selected' : ''; ?>>
                                 Active
                             </option>
 
-                            <option
-                                value="draft"
-                                <?php echo $status_f === 'draft' ? 'selected' : ''; ?>
-                            >
+                            <option value="draft"
+                                <?php echo $status_f === 'draft' ? 'selected' : ''; ?>>
                                 Draft
                             </option>
 
-                            <option
-                                value="completed"
-                                <?php echo $status_f === 'completed' ? 'selected' : ''; ?>
-                            >
+                            <option value="completed"
+                                <?php echo $status_f === 'completed' ? 'selected' : ''; ?>>
                                 Completed
                             </option>
 
@@ -479,22 +371,15 @@ require_once 'includes/header.php';
                             name="bl_type"
                             class="form-select"
                         >
+                            <option value="">All Types</option>
 
-                            <option value="">
-                                All Types
-                            </option>
-
-                            <option
-                                value="TBL"
-                                <?php echo $type_f === 'TBL' ? 'selected' : ''; ?>
-                            >
+                            <option value="TBL"
+                                <?php echo $type_f === 'TBL' ? 'selected' : ''; ?>>
                                 TBL
                             </option>
 
-                            <option
-                                value="Non-TBL"
-                                <?php echo $type_f === 'Non-TBL' ? 'selected' : ''; ?>
-                            >
+                            <option value="Non-TBL"
+                                <?php echo $type_f === 'Non-TBL' ? 'selected' : ''; ?>>
                                 Non-TBL
                             </option>
 
@@ -562,6 +447,12 @@ require_once 'includes/header.php';
 
                     <?php foreach ($bills as $bl): ?>
 
+                        <?php
+
+                        $returnDate = $bl['last_return_date'];
+
+                        ?>
+
                         <tr>
 
                             <td>
@@ -584,40 +475,30 @@ require_once 'includes/header.php';
                             </td>
 
                             <td>
-
                                 <?php echo htmlspecialchars($bl['item_description']); ?>
-
                             </td>
 
                             <td>
-
                                 <?php echo number_format($bl['containers']); ?>
-
                             </td>
 
                             <td>
-
                                 <?php echo number_format($bl['total_bags']); ?>
-
                             </td>
 
                             <td>
-
                                 <?php echo number_format($bl['total_gw'], 3); ?>
-
                             </td>
 
                             <td>
-
                                 <?php echo number_format($bl['total_nw'], 3); ?>
-
                             </td>
 
                             <td>
 
-                                <?php if ($bl['last_return_date']): ?>
+                                <?php if ($returnDate): ?>
 
-                                    <?php echo date('M d, Y', strtotime($bl['last_return_date'])); ?>
+                                    <?php echo date('M d, Y', strtotime($returnDate)); ?>
 
                                 <?php else: ?>
 
@@ -643,24 +524,18 @@ require_once 'includes/header.php';
                                         onchange="this.form.submit()"
                                     >
 
-                                        <option
-                                            value="active"
-                                            <?php echo $bl['status'] === 'active' ? 'selected' : ''; ?>
-                                        >
+                                        <option value="active"
+                                            <?php echo $bl['status'] === 'active' ? 'selected' : ''; ?>>
                                             Active
                                         </option>
 
-                                        <option
-                                            value="draft"
-                                            <?php echo $bl['status'] === 'draft' ? 'selected' : ''; ?>
-                                        >
+                                        <option value="draft"
+                                            <?php echo $bl['status'] === 'draft' ? 'selected' : ''; ?>>
                                             Draft
                                         </option>
 
-                                        <option
-                                            value="completed"
-                                            <?php echo $bl['status'] === 'completed' ? 'selected' : ''; ?>
-                                        >
+                                        <option value="completed"
+                                            <?php echo $bl['status'] === 'completed' ? 'selected' : ''; ?>>
                                             Completed
                                         </option>
 
@@ -727,6 +602,50 @@ require_once 'includes/header.php';
             </table>
 
         </div>
+
+        <!-- PAGINATION -->
+
+        <?php if ($totalPages > 1): ?>
+
+            <div class="card-footer bg-white">
+
+                <nav>
+
+                    <ul class="pagination justify-content-center mb-0">
+
+                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+
+                            <?php
+
+                            $query = http_build_query([
+                                'search' => $search,
+                                'status' => $status_f,
+                                'bl_type' => $type_f,
+                                'page' => $p
+                            ]);
+
+                            ?>
+
+                            <li class="page-item <?php echo $p == $page ? 'active' : ''; ?>">
+
+                                <a
+                                    class="page-link"
+                                    href="?<?php echo $query; ?>"
+                                >
+                                    <?php echo $p; ?>
+                                </a>
+
+                            </li>
+
+                        <?php endfor; ?>
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+        <?php endif; ?>
 
     </div>
 
