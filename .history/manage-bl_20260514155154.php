@@ -208,7 +208,7 @@ require_once 'includes/header.php';
                         <th>Bags</th>
                         <th>Gross</th>
                         <th>Net</th>
-                        <!-- <th>Status</th> -->
+                        <th>Status</th>
                         <th>Created</th>
                         <th width="150">Actions</th>
                     </tr>
@@ -241,7 +241,7 @@ require_once 'includes/header.php';
                     <td><?= number_format($bl['total_gw'],2); ?></td>
                     <td><?= number_format($bl['total_nw'],2); ?></td>
 
-                    <!-- <td>
+                    <td>
                         <form method="POST">
                             <input type="hidden" name="status_id" value="<?= $bl['id']; ?>">
                             <select name="new_status" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -250,7 +250,7 @@ require_once 'includes/header.php';
                                 <option value="completed" <?= $bl['status']=='completed'?'selected':'' ?>>Completed</option>
                             </select>
                         </form>
-                    </td> -->
+                    </td>
 
                     <td><?= date('M d, Y', strtotime($bl['created_at'])); ?></td>
 

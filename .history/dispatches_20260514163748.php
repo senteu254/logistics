@@ -3,9 +3,7 @@ require_once 'config/database.php';
 $page_title = 'Dispatches';
 
 // Filters
-$status_filter = isset($_GET['status']) && $_GET['status'] !== ''
-    ? trim($_GET['status'])
-    : null;
+$status_filter = trim($_GET['status'] ?? '');
 $search        = trim($_GET['search'] ?? '');
 $perPage       = 15;
 $page          = max(1, intval($_GET['page'] ?? 1));
