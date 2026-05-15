@@ -3,46 +3,25 @@ require_once 'config/database.php';
 $page_title = 'Dashboard';
 require_once 'includes/header.php';
 
-// Safe query function
-function getCount($pdo, $sql) {
-    try {
-        $stmt = $pdo->query($sql);
-        $result = $stmt->fetch(PDO::FETCH_NUM);
-        return $result[0] ?? 0;
-    } catch (PDOException $e) {
-        error_log("Query error: " . $e->getMessage());
-        return 0;
-    }
-}
+$total_bls  = $pdo->query("SELECT COUNT(*) FROM bills_of_lading")->fetchColumn();
+$active_bls = $pdo->query("SELECT COUNT(*) FROM bills_of_lading WHERE status='active'")->fetchColumn();
+$total_bags = $pdo->query("SELECT COALESCE(SUM(number_of_bags),0) FROM bl_items")->fetchColumn();
+$total_gw   = $pdo->query("SELECT COALESCE(SUM(gross_weight),0) FROM bl_items")->fetchColumn();
 
-// Get statistics
-$total_bls  = getCount($pdo, "SELECT COUNT(*) FROM bills_of_lading");
-$active_bls = getCount($pdo, "SELECT COUNT(*) FROM bills_of_lading WHERE status='active'");
-$total_bags = getCount($pdo, "SELECT COALESCE(SUM(number_of_bags),0) FROM bl_items");
-$total_gw   = getCount($pdo, "SELECT COALESCE(SUM(gross_weight),0) FROM bl_items");
-
-// Get recent shipments
-try {
-    $recent = $pdo->query("
-        SELECT b.*, u.username,
-               COUNT(i.id) AS containers,
-               COALESCE(SUM(i.number_of_bags),0) AS total_bags,
-               COALESCE(SUM(i.gross_weight),0) AS total_gw
-        FROM bills_of_lading b
-        LEFT JOIN users u ON b.user_id = u.id
-        LEFT JOIN bl_items i ON b.id = i.bl_id
-        GROUP BY b.id
-        ORDER BY b.created_at DESC
-        LIMIT 8
-    ")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log("Recent query error: " . $e->getMessage());
-    $recent = [];
-}
-
-// Temporary debug (remove after fixing)
-echo "<!-- DEBUG: BLs=$total_bls, Active=$active_bls, Bags=$total_bags, Weight=$total_gw -->";
+$recent = $pdo->query("
+    SELECT b.*, u.username,
+           COUNT(i.id)            AS containers,
+           COALESCE(SUM(i.number_of_bags),0) AS total_bags,
+           COALESCE(SUM(i.gross_weight),0)   AS total_gw
+    FROM   bills_of_lading b
+    LEFT JOIN users u    ON b.user_id = u.id
+    LEFT JOIN bl_items i ON b.id = i.bl_id
+    GROUP BY b.id
+    ORDER BY b.created_at DESC
+    LIMIT 8
+")->fetchAll();
 ?>
+
 <div class="container-fluid py-4">
 
     <!-- HEADER -->

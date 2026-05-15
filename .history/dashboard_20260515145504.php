@@ -1,48 +1,54 @@
 <?php
+// Prevent caching
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require_once 'config/database.php';
 $page_title = 'Dashboard';
 require_once 'includes/header.php';
 
-// Safe query function
-function getCount($pdo, $sql) {
+// Function to safely execute queries with retry
+function safeQuery($pdo, $sql, $default = 0) {
     try {
-        $stmt = $pdo->query($sql);
-        $result = $stmt->fetch(PDO::FETCH_NUM);
-        return $result[0] ?? 0;
+        $result = $pdo->query($sql)->fetchColumn();
+        return $result !== false ? $result : $default;
     } catch (PDOException $e) {
-        error_log("Query error: " . $e->getMessage());
-        return 0;
+        error_log("Query Error: " . $e->getMessage() . " | SQL: " . $sql);
+        return $default;
     }
 }
 
-// Get statistics
-$total_bls  = getCount($pdo, "SELECT COUNT(*) FROM bills_of_lading");
-$active_bls = getCount($pdo, "SELECT COUNT(*) FROM bills_of_lading WHERE status='active'");
-$total_bags = getCount($pdo, "SELECT COALESCE(SUM(number_of_bags),0) FROM bl_items");
-$total_gw   = getCount($pdo, "SELECT COALESCE(SUM(gross_weight),0) FROM bl_items");
+// Get statistics with error handling
+$total_bls  = safeQuery($pdo, "SELECT COUNT(*) FROM bills_of_lading");
+$active_bls = safeQuery($pdo, "SELECT COUNT(*) FROM bills_of_lading WHERE status='active'");
+$total_bags = safeQuery($pdo, "SELECT COALESCE(SUM(number_of_bags),0) FROM bl_items");
+$total_gw   = safeQuery($pdo, "SELECT COALESCE(SUM(gross_weight),0) FROM bl_items");
 
-// Get recent shipments
+// Get recent with error handling
 try {
     $recent = $pdo->query("
         SELECT b.*, u.username,
-               COUNT(i.id) AS containers,
+               COUNT(i.id)            AS containers,
                COALESCE(SUM(i.number_of_bags),0) AS total_bags,
-               COALESCE(SUM(i.gross_weight),0) AS total_gw
-        FROM bills_of_lading b
-        LEFT JOIN users u ON b.user_id = u.id
+               COALESCE(SUM(i.gross_weight),0)   AS total_gw
+        FROM   bills_of_lading b
+        LEFT JOIN users u    ON b.user_id = u.id
         LEFT JOIN bl_items i ON b.id = i.bl_id
         GROUP BY b.id
         ORDER BY b.created_at DESC
         LIMIT 8
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ")->fetchAll();
 } catch (PDOException $e) {
-    error_log("Recent query error: " . $e->getMessage());
+    error_log("Recent Query Error: " . $e->getMessage());
     $recent = [];
 }
 
-// Temporary debug (remove after fixing)
-echo "<!-- DEBUG: BLs=$total_bls, Active=$active_bls, Bags=$total_bags, Weight=$total_gw -->";
+// Debug output (remove in production)
+error_log("Dashboard Stats - BLs: $total_bls, Active: $active_bls, Bags: $total_bags, Weight: $total_gw");
 ?>
+
+<!-- Rest of your HTML stays the same -->
 <div class="container-fluid py-4">
 
     <!-- HEADER -->

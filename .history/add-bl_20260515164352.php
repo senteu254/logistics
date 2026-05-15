@@ -419,7 +419,7 @@ require_once 'includes/header.php';
                             name="bl_number"
                             id="blNumberInput"
                             class="bl-number-input"
-                            placeholder="e.g. AMC123456B or OBL-2024-001"
+                            placeholder="e.g. AMC123456B or BL-2024-001"
                             value="<?php echo htmlspecialchars($_POST['bl_number'] ?? ''); ?>"
                             required
                             autocomplete="off"
