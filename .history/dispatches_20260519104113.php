@@ -37,7 +37,7 @@ $countStmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM dispatches d
     JOIN bl_items i          ON d.bl_item_id = i.id
-    JOIN bills_of_lading b   ON i.bl_id      = b.id
+    JOIN bills_of_lading b   ON d.bl_id      = b.id
     WHERE $whereSQL
 ");
 $countStmt->execute($params);
@@ -52,14 +52,13 @@ $dataStmt = $pdo->prepare("
         i.number_of_bags,
         i.gross_weight,
         i.net_weight,
-        i.bl_id,
         b.bl_number,
         b.item_description,
         u1.full_name   AS dispatched_by_name,
         u2.full_name   AS received_by_name
     FROM dispatches d
     JOIN bl_items i          ON d.bl_item_id = i.id
-    JOIN bills_of_lading b   ON i.bl_id      = b.id
+    JOIN bills_of_lading b   ON d.bl_id      = b.id
     LEFT JOIN users u1       ON d.dispatched_by = u1.id
     LEFT JOIN users u2       ON d.received_by   = u2.id
     WHERE $whereSQL
@@ -73,9 +72,9 @@ $dispatches = $dataStmt->fetchAll();
 $counts = $pdo->query("
     SELECT
         COUNT(*) AS total,
-        COALESCE(SUM(CASE WHEN status='transit'  THEN 1 ELSE 0 END), 0) AS transit,
-        COALESCE(SUM(CASE WHEN status='received' THEN 1 ELSE 0 END), 0) AS received,
-        COALESCE(SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END), 0) AS rejected
+        SUM(CASE WHEN status='transit'  THEN 1 ELSE 0 END) AS transit,
+        SUM(CASE WHEN status='received' THEN 1 ELSE 0 END) AS received,
+        SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected
     FROM dispatches
 ")->fetch();
 

@@ -73,9 +73,9 @@ $dispatches = $dataStmt->fetchAll();
 $counts = $pdo->query("
     SELECT
         COUNT(*) AS total,
-        COALESCE(SUM(CASE WHEN status='transit'  THEN 1 ELSE 0 END), 0) AS transit,
-        COALESCE(SUM(CASE WHEN status='received' THEN 1 ELSE 0 END), 0) AS received,
-        COALESCE(SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END), 0) AS rejected
+        SUM(CASE WHEN status='transit'  THEN 1 ELSE 0 END) AS transit,
+        SUM(CASE WHEN status='received' THEN 1 ELSE 0 END) AS received,
+        SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected
     FROM dispatches
 ")->fetch();
 

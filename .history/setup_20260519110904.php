@@ -18,6 +18,10 @@ try {
     $pdo->exec("DROP TABLE IF EXISTS bl_items");
     $pdo->exec("DROP TABLE IF EXISTS bills_of_lading");
     $pdo->exec("DROP TABLE IF EXISTS users");
+    $pdo->exec("DROP TABLE IF EXISTS dispatches");
+    $pdo->exec("DROP TABLE IF EXISTS empty_returns");
+    $pdo->exec("DROP TABLE IF EXISTS locations");
+    $pdo->exec("DROP TABLE IF EXISTS transporters");
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
     // Create users table (with full_name)
