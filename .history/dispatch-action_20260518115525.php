@@ -18,6 +18,7 @@ if (!$redirect_id) {
 // ACTION: DISPATCH
 // ══════════════════════════════════════════
 if ($action === 'dispatch') {
+    $bl_id                = intval($_POST['bl_id'] ?? 0);
     $bl_item_id           = intval($_POST['bl_item_id'] ?? 0);
     $transporter_name     = trim($_POST['transporter_name'] ?? '');
     $truck_number         = strtoupper(trim($_POST['truck_number'] ?? ''));
@@ -26,12 +27,11 @@ if ($action === 'dispatch') {
     $destination          = trim($_POST['destination'] ?? '');
     $notes                = trim($_POST['notes'] ?? '');
 
-    if (!$bl_item_id || !$transporter_name || !$truck_number || !$destination) {
+    if (!$bl_id || !$bl_item_id || !$transporter_name || !$truck_number || !$destination) {
         header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
         exit();
     }
 
-    // Already dispatched?
     $chk = $pdo->prepare("SELECT id FROM dispatches WHERE bl_item_id = ? LIMIT 1");
     $chk->execute([$bl_item_id]);
     if ($chk->fetch()) {
@@ -42,17 +42,18 @@ if ($action === 'dispatch') {
     try {
         $pdo->beginTransaction();
 
-        $pdo->prepare("
-            INSERT INTO dispatches
-                (bl_item_id, transporter_name, truck_number,
-                 clearing_agent_dnote, transporter_dnote, destination,
-                 status, dispatched_by, notes, dispatched_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'transit', ?, ?, NOW())
-        ")->execute([
-            $bl_item_id, $transporter_name, $truck_number,
-            $clearing_agent_dnote ?: null, $transporter_dnote ?: null,
-            $destination, $_SESSION['user_id'], $notes ?: null,
-        ]);
+     $ins = $pdo->prepare("
+    INSERT INTO dispatches
+    (bl_item_id, transporter_name, truck_number,
+     clearing_agent_dnote, transporter_dnote, destination,
+     status, dispatched_by, notes, dispatched_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'transit', ?, ?, NOW())
+");
+$ins->execute([
+    $bl_item_id, $transporter_name, $truck_number,
+    $clearing_agent_dnote ?: null, $transporter_dnote ?: null,
+    $destination, $_SESSION['user_id'], $notes ?: null,
+]);
 
         $pdo->prepare("UPDATE bl_items SET dispatch_status='transit', dispatched_at=NOW() WHERE id=?")
             ->execute([$bl_item_id]);
@@ -76,6 +77,7 @@ if ($action === 'update_status') {
     $bl_item_id       = intval($_POST['bl_item_id'] ?? 0);
     $new_status       = trim($_POST['new_status'] ?? '');
     $rejection_reason = trim($_POST['rejection_reason'] ?? '');
+    $new_destination  = trim($_POST['new_destination'] ?? ''); // for rejected redirect
     $notes            = trim($_POST['notes'] ?? '');
 
     if (!in_array($new_status, ['received', 'rejected'])) {
@@ -88,16 +90,58 @@ if ($action === 'update_status') {
         exit();
     }
 
+    // If rejected AND a new destination is provided → redirect (back to transit)
+    if ($new_status === 'rejected' && !empty($new_destination)) {
+        try {
+            $pdo->beginTransaction();
+
+            // Update dispatch: stay transit but log rejection + new destination
+            $pdo->prepare("
+                UPDATE dispatches SET
+                    rejection_reason = ?,
+                    redirected_destination = ?,
+                    redirected_at = NOW(),
+                    redirect_count = redirect_count + 1,
+                    notes = ?
+                WHERE id = ?
+            ")->execute([
+                $rejection_reason,
+                $new_destination,
+                $notes ?: null,
+                $dispatch_id
+            ]);
+
+            // Update the destination to new destination, keep status transit
+            $pdo->prepare("
+                UPDATE dispatches SET destination = ?, status = 'transit' WHERE id = ?
+            ")->execute([$new_destination, $dispatch_id]);
+
+            // bl_item stays transit
+            $pdo->prepare("UPDATE bl_items SET dispatch_status='transit' WHERE id=?")
+                ->execute([$bl_item_id]);
+
+            $pdo->commit();
+            header("Location: view-bl.php?id=$redirect_id&redirected=1");
+            exit();
+
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            die("DB Error (redirect): " . htmlspecialchars($e->getMessage()) .
+                " <a href='view-bl.php?id=$redirect_id'>Go Back</a>");
+        }
+    }
+
+    // Normal received/rejected flow
     try {
         $pdo->beginTransaction();
 
         $pdo->prepare("
             UPDATE dispatches SET
-                status           = ?,
-                received_at      = NOW(),
-                received_by      = ?,
+                status = ?,
+                received_at = NOW(),
+                received_by = ?,
                 rejection_reason = ?,
-                notes            = ?
+                notes = ?
             WHERE id = ?
         ")->execute([
             $new_status,
@@ -126,31 +170,26 @@ if ($action === 'update_status') {
 // ══════════════════════════════════════════
 // ACTION: INITIATE EMPTY RETURN
 // ══════════════════════════════════════════
-// Called after container is marked "received".
-// TBL:     depot required  → return_status = 'in_transit'
-// Non-TBL: transporter + local_depot required → return_status = 'in_transit'
-// Both start as in_transit; user then records arrival (date_in) to complete.
-// ══════════════════════════════════════════
 if ($action === 'empty_return') {
-    $bl_id       = intval($_POST['bl_id']       ?? 0);
-    $bl_item_id  = intval($_POST['bl_item_id']  ?? 0);
+    $bl_id      = intval($_POST['bl_id'] ?? 0);
+    $bl_item_id = intval($_POST['bl_item_id'] ?? 0);
     $dispatch_id = intval($_POST['dispatch_id'] ?? 0);
-    $bl_type     = trim($_POST['bl_type']       ?? '');
-    $notes       = trim($_POST['notes']         ?? trim($_POST['notes_nontbl'] ?? ''));
+    $bl_type    = trim($_POST['bl_type'] ?? '');
 
     // TBL fields
-    $depot       = trim($_POST['depot']        ?? '');
+    $date_in    = trim($_POST['date_in'] ?? '');
+    $depot      = trim($_POST['depot'] ?? '');
 
     // Non-TBL fields
-    $transporter = trim($_POST['transporter']  ?? '');
-    $local_depot = trim($_POST['local_depot']  ?? '');
+    $transporter = trim($_POST['transporter'] ?? '');
+    $local_depot = trim($_POST['local_depot'] ?? '');
 
-    if (!$bl_id || !$bl_item_id || !$dispatch_id || !in_array($bl_type, ['TBL','Non-TBL'])) {
+    if (!$bl_id || !$bl_item_id || !$dispatch_id) {
         header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
         exit();
     }
 
-    // Already initiated?
+    // Check not already initiated
     $chk = $pdo->prepare("SELECT id FROM empty_returns WHERE bl_item_id = ? LIMIT 1");
     $chk->execute([$bl_item_id]);
     if ($chk->fetch()) {
@@ -158,43 +197,58 @@ if ($action === 'empty_return') {
         exit();
     }
 
-    // Validate required fields per type
-    if ($bl_type === 'TBL' && empty($depot)) {
-        header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
-        exit();
-    }
-    if ($bl_type === 'Non-TBL' && (empty($transporter) || empty($local_depot))) {
-        header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
-        exit();
-    }
-
     try {
         $pdo->beginTransaction();
 
-        $pdo->prepare("
-            INSERT INTO empty_returns
-                (dispatch_id, bl_id, bl_item_id, bl_type,
-                 depot, transporter, local_depot,
-                 return_status, created_by, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'in_transit', ?, ?)
-        ")->execute([
-            $dispatch_id,
-            $bl_id,
-            $bl_item_id,
-            $bl_type,
-            $bl_type === 'TBL'     ? $depot       : null,
-            $bl_type === 'Non-TBL' ? $transporter : null,
-            $bl_type === 'Non-TBL' ? $local_depot : null,
-            $_SESSION['user_id'],
-            $notes ?: null,
-        ]);
+        if ($bl_type === 'TBL') {
+            // TBL: date_in and depot required
+            if (empty($date_in) || empty($depot)) {
+                header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
+                exit();
+            }
 
-        $pdo->prepare("UPDATE bl_items SET empty_return_status='in_transit' WHERE id=?")
-            ->execute([$bl_item_id]);
+            $pdo->prepare("
+                INSERT INTO empty_returns
+                (dispatch_id, bl_id, bl_item_id, bl_type, date_in, depot,
+                 return_status, returned_date, created_by, completed_at, completed_by)
+                VALUES (?, ?, ?, 'TBL', ?, ?, 'completed', ?, ?, NOW(), ?)
+            ")->execute([
+                $dispatch_id, $bl_id, $bl_item_id,
+                $date_in, $depot, $date_in,
+                $_SESSION['user_id'], $_SESSION['user_id']
+            ]);
 
-        $pdo->commit();
-        header("Location: view-bl.php?id=$redirect_id&return_initiated=1");
-        exit();
+            $pdo->prepare("UPDATE bl_items SET empty_return_status='completed' WHERE id=?")
+                ->execute([$bl_item_id]);
+
+            $pdo->commit();
+            header("Location: view-bl.php?id=$redirect_id&return_completed=1");
+            exit();
+
+        } else {
+            // Non-TBL: transporter and local_depot required, goes to transit
+            if (empty($transporter) || empty($local_depot)) {
+                header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
+                exit();
+            }
+
+            $pdo->prepare("
+                INSERT INTO empty_returns
+                (dispatch_id, bl_id, bl_item_id, bl_type, transporter,
+                 local_depot, return_status, created_by)
+                VALUES (?, ?, ?, 'Non-TBL', ?, ?, 'in_transit', ?)
+            ")->execute([
+                $dispatch_id, $bl_id, $bl_item_id,
+                $transporter, $local_depot, $_SESSION['user_id']
+            ]);
+
+            $pdo->prepare("UPDATE bl_items SET empty_return_status='in_transit' WHERE id=?")
+                ->execute([$bl_item_id]);
+
+            $pdo->commit();
+            header("Location: view-bl.php?id=$redirect_id&return_transit=1");
+            exit();
+        }
 
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -204,23 +258,14 @@ if ($action === 'empty_return') {
 }
 
 // ══════════════════════════════════════════
-// ACTION: COMPLETE RETURN (Record Date-In)
-// ══════════════════════════════════════════
-// User enters the date the container arrived at the depot.
-// Sets return_status = 'completed', records returned_date & date_in.
+// ACTION: COMPLETE NON-TBL RETURN
 // ══════════════════════════════════════════
 if ($action === 'complete_return') {
-    $bl_item_id    = intval($_POST['bl_item_id']  ?? 0);
-    $return_id     = intval($_POST['return_id']   ?? 0);
+    $bl_item_id  = intval($_POST['bl_item_id'] ?? 0);
+    $return_id   = intval($_POST['return_id'] ?? 0);
     $returned_date = trim($_POST['returned_date'] ?? '');
 
     if (!$return_id || !$bl_item_id || empty($returned_date)) {
-        header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
-        exit();
-    }
-
-    // Validate date
-    if (strtotime($returned_date) === false) {
         header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
         exit();
     }
@@ -231,17 +276,11 @@ if ($action === 'complete_return') {
         $pdo->prepare("
             UPDATE empty_returns SET
                 return_status = 'completed',
-                date_in       = ?,
                 returned_date = ?,
-                completed_at  = NOW(),
-                completed_by  = ?
+                completed_at = NOW(),
+                completed_by = ?
             WHERE id = ?
-        ")->execute([
-            $returned_date,   // date_in = arrival date
-            $returned_date,   // returned_date = same
-            $_SESSION['user_id'],
-            $return_id,
-        ]);
+        ")->execute([$returned_date, $_SESSION['user_id'], $return_id]);
 
         $pdo->prepare("UPDATE bl_items SET empty_return_status='completed' WHERE id=?")
             ->execute([$bl_item_id]);
