@@ -366,5 +366,4 @@ if ($action === 'complete_return') {
     }
 }
 
-
 die("Unknown action: " . htmlspecialchars($action));

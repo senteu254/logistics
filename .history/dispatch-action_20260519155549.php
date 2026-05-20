@@ -37,6 +37,7 @@ if ($action === 'dispatch') {
         exit();
     }
 
+    // **FIX: Get bl_id from bl_items**
     $stmt = $pdo->prepare("SELECT bl_id FROM bl_items WHERE id = ?");
     $stmt->execute([$bl_item_id]);
     $item = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -59,6 +60,7 @@ if ($action === 'dispatch') {
     try {
         $pdo->beginTransaction();
 
+        // **FIX: Include bl_id in the INSERT**
         $pdo->prepare("
             INSERT INTO dispatches
                 (bl_id, bl_item_id, transporter_name, truck_number,
@@ -66,7 +68,7 @@ if ($action === 'dispatch') {
                  status, dispatched_by, notes, dispatched_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'transit', ?, ?, NOW())
         ")->execute([
-            $bl_id,
+            $bl_id,  // **ADDED**
             $bl_item_id,
             $transporter_name,
             $truck_number,
@@ -89,7 +91,6 @@ if ($action === 'dispatch') {
             " <a href='view-bl.php?id=$redirect_id'>Go Back</a>");
     }
 }
-
 // ══════════════════════════════════════════
 // ACTION: UPDATE STATUS (Received / Rejected)
 // ══════════════════════════════════════════
@@ -140,96 +141,6 @@ if ($action === 'update_status') {
     } catch (PDOException $e) {
         $pdo->rollBack();
         die("DB Error (update_status): " . htmlspecialchars($e->getMessage()) .
-            " <a href='view-bl.php?id=$redirect_id'>Go Back</a>");
-    }
-}
-
-// ══════════════════════════════════════════
-// ACTION: RE-DISPATCH (rejected container to new destination)
-// ══════════════════════════════════════════
-// Creates a fresh dispatch row (status='transit') and increments
-// redispatch_count on the old rejected record.
-// The view-bl.php query always fetches the LATEST dispatch per item
-// (ORDER BY dispatched_at DESC LIMIT 1), so the new row wins automatically.
-// ══════════════════════════════════════════
-if ($action === 'redispatch') {
-    $bl_item_id       = intval($_POST['bl_item_id']      ?? 0);
-    $old_dispatch_id  = intval($_POST['old_dispatch_id'] ?? 0);
-    $transporter_name = trim($_POST['transporter_name']  ?? '');
-    $truck_number     = strtoupper(trim($_POST['truck_number'] ?? ''));
-    $clearing_agent_dnote = trim($_POST['clearing_agent_dnote'] ?? '');
-    $transporter_dnote    = trim($_POST['transporter_dnote']    ?? '');
-    $destination      = trim($_POST['destination'] ?? '');
-    $notes            = trim($_POST['notes']       ?? '');
-
-    if (!$bl_item_id || !$old_dispatch_id || !$transporter_name || !$truck_number || !$destination) {
-        header("Location: view-bl.php?id=$redirect_id&error=missing_fields");
-        exit();
-    }
-
-    // Fetch bl_id and verify the old dispatch actually belongs to this item
-    // and is in 'rejected' status — prevents accidental double-redispatch.
-    $stmt = $pdo->prepare("
-        SELECT d.id, d.redispatch_count, i.bl_id
-        FROM dispatches d
-        JOIN bl_items i ON i.id = d.bl_item_id
-        WHERE d.id = ? AND d.bl_item_id = ? AND d.status = 'rejected'
-        LIMIT 1
-    ");
-    $stmt->execute([$old_dispatch_id, $bl_item_id]);
-    $old = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$old) {
-        header("Location: view-bl.php?id=$redirect_id&error=invalid_item");
-        exit();
-    }
-
-    $bl_id           = $old['bl_id'];
-    $redispatch_count = (int)$old['redispatch_count'] + 1;
-
-    try {
-        $pdo->beginTransaction();
-
-        // 1. Bump redispatch_count on the old record so the UI can show "Re-dispatched Nx"
-        $pdo->prepare("
-            UPDATE dispatches
-            SET redispatch_count = ?
-            WHERE id = ?
-        ")->execute([$redispatch_count, $old_dispatch_id]);
-
-        // 2. Insert the new dispatch record
-        $pdo->prepare("
-            INSERT INTO dispatches
-                (bl_id, bl_item_id, transporter_name, truck_number,
-                 clearing_agent_dnote, transporter_dnote, destination,
-                 status, dispatched_by, notes, redispatch_count, dispatched_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'transit', ?, ?, ?, NOW())
-        ")->execute([
-            $bl_id,
-            $bl_item_id,
-            $transporter_name,
-            $truck_number,
-            $clearing_agent_dnote ?: null,
-            $transporter_dnote    ?: null,
-            $destination,
-            $_SESSION['user_id'],
-            $notes ?: null,
-            $redispatch_count,
-        ]);
-
-        // 3. Reset item status to 'transit' so Update Status button reappears
-        $pdo->prepare("
-            UPDATE bl_items
-            SET dispatch_status = 'transit', dispatched_at = NOW()
-            WHERE id = ?
-        ")->execute([$bl_item_id]);
-
-        $pdo->commit();
-        header("Location: view-bl.php?id=$redirect_id&redispatched=1");
-        exit();
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        die("DB Error (redispatch): " . htmlspecialchars($e->getMessage()) .
             " <a href='view-bl.php?id=$redirect_id'>Go Back</a>");
     }
 }
@@ -347,8 +258,8 @@ if ($action === 'complete_return') {
                 completed_by  = ?
             WHERE id = ?
         ")->execute([
-            $returned_date,
-            $returned_date,
+            $returned_date,   // date_in = arrival date
+            $returned_date,   // returned_date = same
             $_SESSION['user_id'],
             $return_id,
         ]);
@@ -365,6 +276,5 @@ if ($action === 'complete_return') {
             " <a href='view-bl.php?id=$redirect_id'>Go Back</a>");
     }
 }
-
 
 die("Unknown action: " . htmlspecialchars($action));
