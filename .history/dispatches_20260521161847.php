@@ -592,7 +592,7 @@ require_once 'includes/header.php';
 </div>
 
 <!-- Filter Bar -->
-<form method="GET" id="filterForm">
+<!-- <form method="GET" id="filterForm">
     <input type="hidden" name="status" value="<?php echo htmlspecialchars($status_filter); ?>">
     <div class="filter-bar">
         <div class="search-wrap">
@@ -603,18 +603,19 @@ require_once 'includes/header.php';
                 class="search-input"
                 placeholder="Search B/L, container, truck, transporter, destination..."
                 value="<?php echo htmlspecialchars($search); ?>"
-                oninput="clearTimeout(window._st); window._st=setTimeout(()=>this.form.submit(),500)">
+                oninput="clearTimeout(window._st); window._st=setTimeout(()=>this.form.submit(),500)"
+            >
         </div>
         <?php if ($search): ?>
-            <a href="?status=<?php echo urlencode($status_filter); ?>" class="btn-m btn-ghost btn-sm">
-                <i class="fas fa-xmark"></i> Clear
-            </a>
+        <a href="?status=<?php echo urlencode($status_filter); ?>" class="btn-m btn-ghost btn-sm">
+            <i class="fas fa-xmark"></i> Clear
+        </a>
         <?php endif; ?>
         <div style="color:var(--txt-3);font-size:0.8rem;font-weight:500;white-space:nowrap;margin-left:auto;">
             <?php echo number_format($totalRows); ?> record<?php echo $totalRows != 1 ? 's' : ''; ?>
         </div>
     </div>
-</form>
+</form> -->
 
 <!-- Dispatch List -->
 <?php if (empty($dispatches)): ?>
