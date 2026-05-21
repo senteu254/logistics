@@ -723,6 +723,9 @@ require_once 'includes/header.php';
                 <h1>Shipments</h1>
                 <p class="subtitle">Manage shipment records</p>
             </div>
+            <a href="add-bl.php" class="btn-primary-dash">
+                <i class="bi bi-plus-lg"></i> New Shipment
+            </a>
         </header>
 
         <!-- ALERTS -->

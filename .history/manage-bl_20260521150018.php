@@ -723,6 +723,9 @@ require_once 'includes/header.php';
                 <h1>Shipments</h1>
                 <p class="subtitle">Manage shipment records</p>
             </div>
+            <a href="add-bl.php" class="btn-primary-dash">
+                <i class="bi bi-plus-lg"></i> New Shipment
+            </a>
         </header>
 
         <!-- ALERTS -->
@@ -1020,8 +1023,8 @@ require_once 'includes/header.php';
 
                             <?php if ($end < $totalPages):
                                 if ($end < $totalPages - 1): ?><span class="pager-btn" style="pointer-events:none;border:none;color:var(--muted);">…</span><?php endif;
-                                                                                                                                                        $q = $qBase ? $qBase . '&page=' . $totalPages : 'page=' . $totalPages;
-                                                                                                                                                            ?>
+                                                                                                                                    $q = $qBase ? $qBase . '&page=' . $totalPages : 'page=' . $totalPages;
+                                                                                                                                        ?>
                                 <a href="manage-bl.php?<?= $q ?>" class="pager-btn"><?= $totalPages ?></a>
                             <?php endif; ?>
 

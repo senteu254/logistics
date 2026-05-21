@@ -1111,6 +1111,14 @@ $current = basename($_SERVER['PHP_SELF']);
         <!-- ═══════ SIDEBAR ═══════ -->
         <aside class="sidebar" id="sidebar">
 
+            <!-- <div class="sb-logo">
+                <div class="sb-logo-icon"><i class="fas fa-ship"></i></div>
+                <div>
+                    <span class="sb-logo-title">RVP Operations</span>
+                    <span class="sb-logo-sub">v2.0 &mdash; Shipping Suite</span>
+                </div>
+            </div> 204.41 -->
+
             <div class="sb-user">
                 <div class="sb-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
                 <div style="overflow:hidden;">

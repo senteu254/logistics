@@ -442,6 +442,9 @@ require_once 'includes/header.php';
         <button onclick="window.print()" class="btn-m btn-ghost">
             <i class="fas fa-print"></i> Print
         </button>
+        <!-- <a href="add-bl.php" class="btn-m btn-indigo">
+            <i class="fas fa-circle-plus"></i> New B/L
+        </a> -->
     </div>
 </div>
 

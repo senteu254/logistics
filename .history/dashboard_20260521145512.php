@@ -614,7 +614,7 @@ function statusBadge($status)
                 </div>
                 <div class="stat-body">
                     <div class="stat-value"><?= number_format($total_gw, 1) ?></div>
-                    <div class="stat-label">Gross Weight (MT)</div>
+                    <div class="stat-label">G Weight (MT)</div>
                 </div>
             </div>
 

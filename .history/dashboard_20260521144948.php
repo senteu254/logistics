@@ -584,7 +584,7 @@ function statusBadge($status)
                 </div>
                 <div class="stat-body">
                     <div class="stat-value"><?= number_format($total_bls) ?></div>
-                    <div class="stat-label">Shipments</div>
+                    <div class="stat-label">Total Shipments</div>
                 </div>
             </div>
 
