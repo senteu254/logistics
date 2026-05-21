@@ -771,7 +771,7 @@ require_once 'includes/header.php';
                                 <div class="rank-meta">
                                     <?php echo number_format($c['bags']); ?> bags
                                     &nbsp;·&nbsp;
-                                    <?php echo number_format($c['gw'], 0); ?> MT GW
+                                    <?php echo number_format($c['gw'], 0); ?> kg GW
                                     &nbsp;·&nbsp;
                                     <?php echo $c['times_used']; ?>× used
                                 </div>

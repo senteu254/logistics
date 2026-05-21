@@ -1146,6 +1146,12 @@ $current = basename($_SERVER['PHP_SELF']);
                     <span>Add Shipment</span>
                     <i class="fas fa-chevron-right sb-link-arrow"></i>
                 </a>
+                <a href="view-bl.php"
+                    class="sb-link <?php echo $current == 'view-bl.php' ? 'active' : ''; ?>">
+                    <div class="sb-link-ico"><i class="fas fa-list-check"></i></div>
+                    <span>View Shipment</span>
+                    <i class="fas fa-chevron-right sb-link-arrow"></i>
+                </a>
 
                 <a href="manage-bl.php"
                     class="sb-link <?php echo $current == 'manage-bl.php' ? 'active' : ''; ?>">
