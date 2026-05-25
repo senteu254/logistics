@@ -229,7 +229,7 @@ require_once 'includes/header.php';
         background: var(--bg);
     }
 
-    s .bl-type-option {
+    .bl-type-option {
         flex: 1;
         position: relative;
     }

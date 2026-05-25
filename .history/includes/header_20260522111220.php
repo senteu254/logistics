@@ -1146,7 +1146,12 @@ $current = basename($_SERVER['PHP_SELF']);
                     <i class="fas fa-chevron-right sb-link-arrow"></i>
                 </a>
 
-
+                <a href="view-bl.php"
+                    class="sb-link <?php echo $current == 'view-bl.php' ? 'active' : ''; ?>">
+                    <div class="sb-link-ico"><i class="fas fa-list-eye"></i></div>
+                    <span>view Shipment</span>
+                    <i class="fas fa-chevron-right sb-link-arrow"></i>
+                </a>
 
 
                 <a href="dispatches.php"
@@ -1214,10 +1219,10 @@ $current = basename($_SERVER['PHP_SELF']);
                     </div>
                 </div>
                 <div class="nav-right">
-                    <!-- <button class="nav-icon-btn">
+                    <button class="nav-icon-btn">
                         <i class="fas fa-bell"></i>
                         <span class="notif-dot"></span>
-                    </button> -->
+                    </button>
                     <div class="nav-clock" id="navClock"></div>
                     <div class="nav-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
                 </div>

@@ -96,9 +96,6 @@ function statusBadge($status)
             --shadow-md: 0 4px 12px rgba(0, 0, 0, .08);
             --font-main: 'DM Sans', system-ui, sans-serif;
             --font-mono: 'DM Mono', monospace;
-
-            /* ADJUST THIS: Match the precise width of your admin sidebar menu layout */
-            --sidebar-width: 240px;
         }
 
         *,
@@ -107,44 +104,48 @@ function statusBadge($status)
             box-sizing: border-box;
         }
 
+        /* HARD CONTAINMENT RULES FOR OUTSIDE CONTAINERS/HEADERS */
+        html,
+        body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden !important;
+        }
+
         body {
             background: var(--dash-bg);
             font-family: var(--font-main);
             font-size: 15px;
             color: #111827;
             -webkit-font-smoothing: antialiased;
-            margin: 0;
-            padding: 0;
         }
 
         /* ── Page wrapper ── */
         .dash-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 1.25rem 1rem 3rem;
             width: 100%;
         }
 
-        /* Dynamically offsets content container if screen width reveals sidebar */
-        @media (min-width: 992px) {
+        @media (min-width: 768px) {
             .dash-wrapper {
-                padding: 2rem 1.75rem 3rem;
-                max-width: calc(100vw - var(--sidebar-width));
-                float: right;
-                /* Keeps workspace attached to right side screen track fluidly */
+                padding: 2rem 1.5rem 3rem;
             }
         }
 
         /* ── Page header ── */
         .page-header {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
+            align-items: flex-start;
+            gap: .75rem;
             margin-bottom: 1.5rem;
-            width: 100%;
         }
 
         .page-header h1 {
-            font-size: clamp(1.3rem, 4vw, 1.65rem);
+            font-size: clamp(1.3rem, 4vw, 1.75rem);
             font-weight: 600;
             margin: 0;
             line-height: 1.2;
@@ -154,14 +155,14 @@ function statusBadge($status)
         .page-header .subtitle {
             font-size: .8125rem;
             color: var(--muted);
-            margin: 2px 0 0;
+            margin-top: 2px;
         }
 
-        /* ── Stat cards grid layout adjustments ── */
+        /* ── Stat cards ── */
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1rem;
+            gap: .75rem;
             margin-bottom: 1.5rem;
             width: 100%;
         }
@@ -169,10 +170,11 @@ function statusBadge($status)
         @media (min-width: 576px) {
             .stat-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
             }
         }
 
-        @media (min-width: 1400px) {
+        @media (min-width: 992px) {
             .stat-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
@@ -186,13 +188,15 @@ function statusBadge($status)
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: box-shadow .15s, border-color .15s;
-            border: 1px solid var(--border);
+            transition: box-shadow .15s;
+            border: 1px solid transparent;
             min-width: 0;
+            /* Prevents grid cell bursting */
         }
 
         .stat-card:hover {
             box-shadow: var(--shadow-md);
+            border-color: var(--border);
         }
 
         .stat-icon {
@@ -232,22 +236,18 @@ function statusBadge($status)
         }
 
         .stat-value {
-            font-size: clamp(1.15rem, 3vw, 1.4rem);
+            font-size: clamp(1.2rem, 3.5vw, 1.5rem);
             font-weight: 600;
             line-height: 1.2;
             letter-spacing: -.02em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
         }
 
         .stat-label {
             font-size: .75rem;
             color: var(--muted);
             margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
         }
 
         /* ── Section card ── */
@@ -255,9 +255,9 @@ function statusBadge($status)
             background: var(--card-bg);
             border-radius: var(--card-radius);
             box-shadow: var(--shadow-sm);
+            overflow: hidden;
             border: 1px solid var(--border);
             width: 100%;
-            margin-bottom: 2rem;
         }
 
         .section-header {
@@ -276,19 +276,11 @@ function statusBadge($status)
             letter-spacing: -.01em;
         }
 
-        /* ── Desktop table container context ── */
-        .table-scroll {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
+        /* ── Desktop table ── */
         .ship-table {
             width: 100%;
             border-collapse: collapse;
             font-size: .875rem;
-            min-width: 900px;
-            /* Provides fixed columns safety within standard tables view */
         }
 
         .ship-table thead tr {
@@ -297,7 +289,7 @@ function statusBadge($status)
         }
 
         .ship-table thead th {
-            padding: .75rem 1rem;
+            padding: .625rem 1rem;
             font-size: .75rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -320,7 +312,7 @@ function statusBadge($status)
         }
 
         .ship-table tbody td {
-            padding: .85rem 1rem;
+            padding: .75rem 1rem;
             vertical-align: middle;
         }
 
@@ -332,11 +324,10 @@ function statusBadge($status)
         }
 
         .desc-cell {
-            max-width: 260px;
+            max-width: 180px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            display: block;
             color: var(--muted);
         }
 
@@ -440,6 +431,7 @@ function statusBadge($status)
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
+            /* Prevent popping container boundaries */
         }
 
         .ship-mob-stats {
@@ -452,6 +444,7 @@ function statusBadge($status)
 
         .ship-mob-stat {
             padding: .625rem .25rem;
+            /* Tapered padding for ultra small screens */
             text-align: center;
             min-width: 0;
         }
@@ -558,7 +551,7 @@ function statusBadge($status)
             color: #1d4ed8;
         }
 
-        /* Responsive layout visibility filters toggles */
+        /* ── Mobile-first visibility ── */
         .desktop-only {
             display: none;
         }
@@ -567,7 +560,7 @@ function statusBadge($status)
             display: block;
         }
 
-        @media (min-width: 1024px) {
+        @media (min-width: 768px) {
             .desktop-only {
                 display: block;
             }
@@ -575,6 +568,12 @@ function statusBadge($status)
             .mobile-only {
                 display: none;
             }
+        }
+
+        /* ── Scrollable table wrapper ── */
+        .table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>

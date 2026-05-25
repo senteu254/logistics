@@ -1214,10 +1214,10 @@ $current = basename($_SERVER['PHP_SELF']);
                     </div>
                 </div>
                 <div class="nav-right">
-                    <!-- <button class="nav-icon-btn">
+                    <button class="nav-icon-btn">
                         <i class="fas fa-bell"></i>
                         <span class="notif-dot"></span>
-                    </button> -->
+                    </button>
                     <div class="nav-clock" id="navClock"></div>
                     <div class="nav-avatar"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
                 </div>

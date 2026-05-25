@@ -96,9 +96,6 @@ function statusBadge($status)
             --shadow-md: 0 4px 12px rgba(0, 0, 0, .08);
             --font-main: 'DM Sans', system-ui, sans-serif;
             --font-mono: 'DM Mono', monospace;
-
-            /* ADJUST THIS: Match the precise width of your admin sidebar menu layout */
-            --sidebar-width: 240px;
         }
 
         *,
@@ -123,28 +120,25 @@ function statusBadge($status)
             width: 100%;
         }
 
-        /* Dynamically offsets content container if screen width reveals sidebar */
+        /* Clears the fixed sidebar structure dynamically if layout rules apply */
         @media (min-width: 992px) {
             .dash-wrapper {
-                padding: 2rem 1.75rem 3rem;
-                max-width: calc(100vw - var(--sidebar-width));
-                float: right;
-                /* Keeps workspace attached to right side screen track fluidly */
+                padding: 2rem 2rem 3rem;
             }
         }
 
         /* ── Page header ── */
         .page-header {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
+            align-items: flex-start;
+            gap: .75rem;
             margin-bottom: 1.5rem;
-            width: 100%;
         }
 
         .page-header h1 {
-            font-size: clamp(1.3rem, 4vw, 1.65rem);
+            font-size: clamp(1.3rem, 4vw, 1.75rem);
             font-weight: 600;
             margin: 0;
             line-height: 1.2;
@@ -154,10 +148,10 @@ function statusBadge($status)
         .page-header .subtitle {
             font-size: .8125rem;
             color: var(--muted);
-            margin: 2px 0 0;
+            margin-top: 2px;
         }
 
-        /* ── Stat cards grid layout adjustments ── */
+        /* ── Stat cards ── */
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -172,7 +166,7 @@ function statusBadge($status)
             }
         }
 
-        @media (min-width: 1400px) {
+        @media (min-width: 1200px) {
             .stat-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
@@ -186,7 +180,7 @@ function statusBadge($status)
             display: flex;
             align-items: center;
             gap: 1rem;
-            transition: box-shadow .15s, border-color .15s;
+            transition: box-shadow .15s;
             border: 1px solid var(--border);
             min-width: 0;
         }
@@ -232,22 +226,18 @@ function statusBadge($status)
         }
 
         .stat-value {
-            font-size: clamp(1.15rem, 3vw, 1.4rem);
+            font-size: clamp(1.2rem, 3.5vw, 1.5rem);
             font-weight: 600;
             line-height: 1.2;
             letter-spacing: -.02em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
         }
 
         .stat-label {
             font-size: .75rem;
             color: var(--muted);
             margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-word;
         }
 
         /* ── Section card ── */
@@ -276,7 +266,7 @@ function statusBadge($status)
             letter-spacing: -.01em;
         }
 
-        /* ── Desktop table container context ── */
+        /* ── Desktop table wrapper ── */
         .table-scroll {
             width: 100%;
             overflow-x: auto;
@@ -287,8 +277,8 @@ function statusBadge($status)
             width: 100%;
             border-collapse: collapse;
             font-size: .875rem;
-            min-width: 900px;
-            /* Provides fixed columns safety within standard tables view */
+            min-width: 800px;
+            /* Forces clear columns in scroll layout */
         }
 
         .ship-table thead tr {
@@ -332,7 +322,7 @@ function statusBadge($status)
         }
 
         .desc-cell {
-            max-width: 260px;
+            max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -558,7 +548,7 @@ function statusBadge($status)
             color: #1d4ed8;
         }
 
-        /* Responsive layout visibility filters toggles */
+        /* Responsive breakpoints layout toggle switches */
         .desktop-only {
             display: none;
         }
